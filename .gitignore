@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+traffic_env/
+.venv/
+venv/
+ENV/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Data/model artifacts
+*.pkl
+*.joblib
+*.log
+*.csv
+*.pcap
+*.pcapng
+
+# Build outputs
+build/
+dist/
+
+# Misc
+*.tmp
+*.bak

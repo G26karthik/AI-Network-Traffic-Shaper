@@ -1,0 +1,27 @@
+Steps for execution :
+Use existing data now (works offline)
+Train on your existing labeled CSV:
+.\traffic_env\Scripts\python.exe .\train_model.py --data traffic_features.csv --model-out traffic_model.pkl --keep-other
+Evaluate the trained model on the same CSV:
+.\traffic_env\Scripts\python.exe .\batch_predict.py --model traffic_model.pkl --data traffic_features.csv
+Note: Don’t add a trailing “--” to batch_predict.py, that’s why it errored before.
+Fix live capture (step-by-step)
+A) Run PowerShell as Administrator
+
+Close shells, launch “Windows PowerShell” as Administrator.
+B) Loopback path (fastest to verify)
+
+Start capture on Npcap Loopback (index 8), no filters:
+.\traffic_env\Scripts\python.exe .\capture_features.py --interface 8 --duration 8 --output dataset.csv --no-filter
+
+In a second Admin PowerShell, generate UDP using sockets to loopback:
+.\traffic_env\Scripts\python.exe .\traffic_generator.py --type voip --duration 8 --pps 60 --dst 127.0.0.1 --method socket
+
+Check appended rows:
+Get-Content .\dataset.csv -Head 2; Get-Content .\dataset.csv -Tail 5
+After capture succeeds
+Train on the new dataset:
+(again come back to local terminal/vs code terminal)
+.\traffic_env\Scripts\python.exe .\train_model.py --data dataset.csv --model-out traffic_model.pkl
+Evaluate:
+.\traffic_env\Scripts\python.exe .\batch_predict.py --model traffic_model.pkl --data dataset.csv
