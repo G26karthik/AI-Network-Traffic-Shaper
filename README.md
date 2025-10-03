@@ -2,13 +2,7 @@
 
 
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)>
-
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)> .
-
-[![ML Framework](https://img.shields.io/badge/ML-scikit--learn-orange.svg)](https://scikit-learn.org/)
-
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)Generate synthetic VoIP/FTP/HTTP traffic, capture with PyShark/TShark, extract features, train a model, and optionally shape traffic via Windows Firewall rules.
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/) [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows) [![ML Framework](https://img.shields.io/badge/ML-scikit--learn-orange.svg)](https://scikit-learn.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)Generate synthetic VoIP/FTP/HTTP traffic, capture with PyShark/TShark, extract features, train a model, and optionally shape traffic via Windows Firewall rules.
 
 
 
