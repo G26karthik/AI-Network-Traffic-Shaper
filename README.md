@@ -2,9 +2,9 @@
 
 
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)> ⚠️ **IMPORTANT**: Recent update fixed critical label leakage issue. **Existing models must be retrained!**  
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)>
 
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)> See [BREAKING_CHANGES.md](BREAKING_CHANGES.md) and [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for details.
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)> .
 
 [![ML Framework](https://img.shields.io/badge/ML-scikit--learn-orange.svg)](https://scikit-learn.org/)
 
