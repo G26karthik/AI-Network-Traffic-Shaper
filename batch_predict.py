@@ -32,12 +32,13 @@ def main(argv: List[str] | None = None) -> int:
     pipe = joblib.load(args.model)
     df = pd.read_csv(args.data)
 
-    need_cols = {"protocol", "length", "src_port", "dst_port"}
+    # FIXED: Removed dst_port to prevent label leakage
+    need_cols = {"protocol", "length", "src_port"}
     if not need_cols.issubset(df.columns):
         print(f"[x] CSV missing required columns: {need_cols - set(df.columns)}")
         return 2
 
-    X = df[["protocol", "length", "src_port", "dst_port"]].copy()
+    X = df[["protocol", "length", "src_port"]].copy()
     y = df["label"].astype(str) if "label" in df.columns else None
 
     y_pred = pipe.predict(X)

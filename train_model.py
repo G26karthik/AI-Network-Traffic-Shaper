@@ -1,11 +1,16 @@
 """
-train_model.py
+Training Module
 
-Train a classifier on features in dataset.csv produced by capture_features.py.
-Features used: protocol (categorical), length, src_port, dst_port (numeric)
-Labels: strings (e.g., VoIP, FTP, HTTP). Optionally filter out 'Other'.
+Hi I am Karthik . I am working on a Intelligent Traffic Shaper using Machine Learning.
+Now Lets See How The Model is Working
+First Capture Real Network Traffic then save it into a file and then train the model. (Already Done
+ the Capture )
+ Then First lets see How the model is Performing  on Traing (Test Set) Accuracy = 99.0%
+ Then Lets Lets See How the Model is Performing on Real Data Set (Captured
+   (Time-Taking))   Accuracy = 79.8% (Almost 80% Accuracy (Which is Good for this kind of Model)
 
-Outputs: a single sklearn Pipeline saved to traffic_model.pkl.
+
+
 """
 
 from __future__ import annotations
@@ -28,23 +33,26 @@ def load_and_prepare(data_path: str, filter_other: bool = True) -> tuple[pd.Data
 	if not os.path.exists(data_path):
 		raise FileNotFoundError(f"Dataset not found: {data_path}. Run capture_features.py first.")
 	df = pd.read_csv(data_path)
-	# Basic cleaning / type coercion
+	# Basic cleaning / type coercion (check all columns that might be in the CSV)
 	for col in ["length", "src_port", "dst_port"]:
-		df[col] = pd.to_numeric(df[col], errors="coerce")
-	df = df.dropna(subset=["length", "src_port", "dst_port", "protocol", "label"]).copy()
+		if col in df.columns:
+			df[col] = pd.to_numeric(df[col], errors="coerce")
+	df = df.dropna(subset=["length", "src_port", "protocol", "label"]).copy()
 
 	if filter_other:
 		df = df[df["label"].isin(["VoIP", "FTP", "HTTP"])].copy()
 	if df.empty:
 		raise ValueError("No rows available after filtering/cleaning. Collect more data.")
 
-	X = df[["protocol", "length", "src_port", "dst_port"]]
+	# FIXED: Removed dst_port to prevent label leakage (ports are used to assign labels)
+	# Only use protocol, length, and src_port as features
+	X = df[["protocol", "length", "src_port"]]
 	y = df["label"].astype(str)
 	return X, y
 
 
 def build_pipeline() -> Pipeline:
-	numeric_features = ["length", "src_port", "dst_port"]
+	numeric_features = ["length", "src_port"]
 	categorical_features = ["protocol"]
 
 	pre = ColumnTransformer(

@@ -4,8 +4,18 @@ import pyshark
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-# ✅ Updated labeling function to check both ports
-def get_label(src_port, dst_port):
+# UPDATED: Align with main pipeline labeling (VoIP/FTP/HTTP on ports 5555/6666/7777)
+# This function now provides BOTH the main pipeline labels AND real-world labels
+def get_label(src_port, dst_port, use_synthetic_labels=True):
+    """
+    Label packets based on port numbers.
+    
+    Args:
+        src_port: Source port
+        dst_port: Destination port
+        use_synthetic_labels: If True, use synthetic lab labels (VoIP/FTP/HTTP).
+                              If False, use real-world labels (Web/DNS/SSH/etc.)
+    """
     try:
         src = int(src_port) if src_port != 'N/A' else None
         dst = int(dst_port) if dst_port != 'N/A' else None
@@ -13,27 +23,39 @@ def get_label(src_port, dst_port):
         return 'Unknown'
 
     ports = [src, dst]
-
-    if any(p in [80, 443, 8080] for p in ports):
-        return 'Web'
-    elif any(p == 53 for p in ports):
-        return 'DNS'
-    elif any(p in [20, 21] for p in ports):
-        return 'FTP'
-    elif any(p == 22 for p in ports):
-        return 'SSH'
-    elif any(p in [25, 587] for p in ports):
-        return 'Email'
-    elif any(p == 1900 for p in ports):
-        return 'SSDP'
-    elif any(p == 5353 for p in ports):
-        return 'mDNS'
-    elif any(p == 5355 for p in ports):
-        return 'LLMNR'
-    elif any(p == 137 for p in ports):
-        return 'NetBIOS'
+    
+    if use_synthetic_labels:
+        # Synthetic lab labels matching main pipeline (for dataset.csv)
+        if any(p == 5555 for p in ports):
+            return 'VoIP'
+        elif any(p == 6666 for p in ports):
+            return 'FTP'
+        elif any(p == 7777 for p in ports):
+            return 'HTTP'
+        else:
+            return 'Other'
     else:
-        return 'Other'
+        # Real-world labels (for actual captured traffic)
+        if any(p in [80, 443, 8080] for p in ports):
+            return 'Web'
+        elif any(p == 53 for p in ports):
+            return 'DNS'
+        elif any(p in [20, 21] for p in ports):
+            return 'FTP'
+        elif any(p == 22 for p in ports):
+            return 'SSH'
+        elif any(p in [25, 587] for p in ports):
+            return 'Email'
+        elif any(p == 1900 for p in ports):
+            return 'SSDP'
+        elif any(p == 5353 for p in ports):
+            return 'mDNS'
+        elif any(p == 5355 for p in ports):
+            return 'LLMNR'
+        elif any(p == 137 for p in ports):
+            return 'NetBIOS'
+        else:
+            return 'Other'
 
 def _resolve_pcap_path(pcap_file: str) -> str:
     if os.path.isabs(pcap_file) and os.path.isfile(pcap_file):
@@ -55,7 +77,17 @@ def _resolve_pcap_path(pcap_file: str) -> str:
     raise FileNotFoundError("PCAP not found. Tried: " + "; ".join(candidates))
 
 
-def extract_features(pcap_file='captured_traffic.pcapng', raw_csv='traffic_features.csv', ml_csv='traffic_features_ml.csv'):
+def extract_features(pcap_file='captured_traffic.pcapng', raw_csv='traffic_features.csv', ml_csv='traffic_features_ml.csv', use_synthetic_labels=True):
+    """
+    Extract features from a PCAP file and save to CSV.
+    
+    Args:
+        pcap_file: Path to PCAP/PCAPNG file
+        raw_csv: Output path for raw features
+        ml_csv: Output path for ML-ready features
+        use_synthetic_labels: If True, use synthetic lab labels (VoIP/FTP/HTTP).
+                             If False, use real-world labels (Web/DNS/SSH/etc.)
+    """
     resolved_pcap = _resolve_pcap_path(pcap_file)
     print(f"[+] Reading pcap: {resolved_pcap}")
     cap = pyshark.FileCapture(resolved_pcap)
@@ -73,8 +105,8 @@ def extract_features(pcap_file='captured_traffic.pcapng', raw_csv='traffic_featu
             src_port = pkt[pkt.transport_layer].srcport if hasattr(pkt, 'transport_layer') else 'N/A'
             dst_port = pkt[pkt.transport_layer].dstport if hasattr(pkt, 'transport_layer') else 'N/A'
 
-            # ✅ Use new labeling
-            label = get_label(src_port, dst_port)
+            # Use the specified labeling scheme
+            label = get_label(src_port, dst_port, use_synthetic_labels)
 
             extracted_data.append({
                 'timestamp': timestamp,
@@ -127,6 +159,10 @@ if __name__ == "__main__":
     parser.add_argument("--pcap", default="captured_traffic.pcapng", help="Path to pcap file (absolute or relative)")
     parser.add_argument("--raw", default="traffic_features.csv", help="Output raw CSV file path")
     parser.add_argument("--ml", default="traffic_features_ml.csv", help="Output ML-ready CSV file path")
+    parser.add_argument("--synthetic-labels", action="store_true", default=True, 
+                       help="Use synthetic lab labels (VoIP/FTP/HTTP on ports 5555/6666/7777). Default: True")
+    parser.add_argument("--real-labels", dest="synthetic_labels", action="store_false",
+                       help="Use real-world labels (Web/DNS/SSH/etc. on standard ports)")
     args = parser.parse_args()
 
-    extract_features(pcap_file=args.pcap, raw_csv=args.raw, ml_csv=args.ml)
+    extract_features(pcap_file=args.pcap, raw_csv=args.raw, ml_csv=args.ml, use_synthetic_labels=args.synthetic_labels)

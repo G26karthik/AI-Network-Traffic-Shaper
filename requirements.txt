@@ -1,12 +1,27 @@
+# Core dependencies (required for main functionality)
 scapy>=2.5.0
 pyshark>=0.6
 pandas>=2.2.0
 scikit-learn>=1.4.0
 joblib>=1.3.0
 numpy>=1.26.0
-scapy>=2.5.0
-pyshark>=0.6
-pandas>=2.2.0
-scikit-learn>=1.4.0
-joblib>=1.3.0
-numpy>=1.26.0
+
+# Optional: Deep learning (PyTorch models)
+# Install PyTorch separately based on your system:
+#   CPU-only: pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   GPU (CUDA): pip install torch
+# torch>=2.0.0
+
+# Optional: FastAPI service for HTTP prediction endpoint
+# Install if you want to run serve_api.py
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# Optional: Advanced ML features
+imbalanced-learn>=0.12.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Optional: Streaming/distributed processing (NOT currently implemented)
+# kafka-python>=2.0.2
+# pyspark>=3.5.0

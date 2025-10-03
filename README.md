@@ -1,36 +1,9 @@
 # AI-Based Network Traffic Shaper (Windows)
 
+> ⚠️ **IMPORTANT**: Recent update fixed critical label leakage issue. **Existing models must be retrained!**  
+> See [BREAKING_CHANGES.md](BREAKING_CHANGES.md) and [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for details.
+
 Generate synthetic VoIP/FTP/HTTP traffic, capture with PyShark/TShark, extract features, train a model, and optionally shape traffic via Windows Firewall rules.
-
-## Setup
-```powershell
-python -m venv traffic_env
-./traffic_env/Scripts/Activate.ps1
-pip install -r requirements.txt
-```
-
-## 1) Generate traffic
-```powershell
-# Run as Administrator for reliability
-./traffic_env/Scripts/python.exe ./traffic_generator.py --type all --duration 15 --pps 30 --dst 127.0.0.1
-```
-
-## 2) Capture and build dataset
-```powershell
-./traffic_env/Scripts/python.exe ./capture_features.py --list
-./traffic_env/Scripts/python.exe ./capture_features.py --interface 1 --duration 15 --output dataset.csv
-```
-
-## 3) Train model
-```powershell
-./traffic_env/Scripts/python.exe ./train_model.py --data dataset.csv --model-out traffic_model.pkl
-```
-
-# AI Traffic Shaper (Windows)
-
-Generate synthetic network traffic (VoIP/FTP/HTTP), capture it with TShark/PyShark, build a labeled dataset, train a scikit-learn model, and optionally apply basic Windows Firewall shaping based on live predictions.
-
-This repository is designed for hands-on learning and demos on Windows using the Npcap/Wireshark stack. It includes standalone scripts for each stage and an end-to-end pipeline runner.
 
 ---
 
@@ -38,42 +11,67 @@ This repository is designed for hands-on learning and demos on Windows using the
 
 - Traffic generation via scapy or Windows socket APIs (VoIP-like UDP, FTP/HTTP-like TCP)
 - Live capture using PyShark with TShark auto-stop and filter controls
-- Feature extraction to CSV and optional PCAP parsing utilities
+- **Fixed**: Proper feature engineering (removed label leakage)
 - Training pipeline (ColumnTransformer + RandomForest) saved as a single sklearn Pipeline
+- Optional PyTorch deep learning models (MLP, GRU)
 - Batch evaluation on CSV and live prediction from capture
-- Optional traffic shaping: adds Windows Firewall rules per predicted class (safe, opt-in)
+- **Enhanced**: Safe traffic shaping with dry-run mode and automatic cleanup
 
 ---
 
-## Tech Stack
+## Recent Changes (2025-10-03)
 
-- Language: Python 3 (repo uses a Windows venv `traffic_env/`)
-- Networking: TShark/PyShark, Npcap (WinPcap-compatible mode), optional scapy
-- Data/ML: pandas, scikit-learn, numpy, joblib
+### 🔧 Critical Fixes
+- **Label Leakage Fixed**: Removed `dst_port` from features to prevent the model from cheating
+  - **BREAKING**: Existing models must be retrained
+  - Expected accuracy: 60-85% (realistic) instead of 98% (artificial)
+  
+### ✨ Improvements
+- Traffic shaping now has safety features (`--dry-run`, auto-cleanup, warnings)
+- Labeling consistency across all scripts
+- Better dependency documentation
 
-See `requirements.txt` for Python dependencies. TShark (from Wireshark) must be installed and on PATH.
+📖 **Full details**: [CHANGELOG.md](CHANGELOG.md) | **Migration**: [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
 
 ---
 
-## Installation
+## Setup
 
 Prerequisites on Windows:
 - Wireshark/TShark installed (ensure `tshark -v` works in a new PowerShell)
 - Npcap installed (enable WinPcap-compatible mode; loopback support recommended)
 - Administrator PowerShell for capture and shaping steps
 
-Setup a virtual environment and install Python dependencies:
+### Installation
 
 ```powershell
+# Create virtual environment
 python -m venv traffic_env
 ./traffic_env/Scripts/Activate.ps1
+
+# Install core dependencies
 pip install -r requirements.txt
+
+# Optional: Install PyTorch for deep learning models
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Verify TShark
+tshark -v
 ```
 
-Optional: verify TShark before proceeding:
+### Quick Start (After Installation)
 
 ```powershell
-tshark -v
+# 1. Generate traffic and capture (run as Administrator)
+./traffic_env/Scripts/python.exe ./capture_features.py --interface 8 --duration 15 --output dataset.csv
+# In another terminal:
+./traffic_env/Scripts/python.exe ./traffic_generator.py --type all --duration 15 --pps 30 --dst 127.0.0.1
+
+# 2. Train model
+./traffic_env/Scripts/python.exe ./train_model.py --data dataset.csv --model-out traffic_model.pkl
+
+# 3. Evaluate
+./traffic_env/Scripts/python.exe ./batch_predict.py --model traffic_model.pkl --data dataset.csv
 ```
 
 ---
@@ -141,16 +139,30 @@ Options:
 
 ### 6) Live prediction (optional shaping)
 
-Without shaping:
+⚠️ **WARNING**: Traffic shaping modifies Windows Firewall and can block legitimate traffic!
+
+Without shaping (safe):
 
 ```powershell
 ./traffic_env/Scripts/python.exe ./predict_and_shape.py --model traffic_model.pkl --interface 1 --duration 15
 ```
 
-With Windows Firewall shaping (Administrator prompt expected):
+With dry-run mode (preview only, no changes):
+
+```powershell
+./traffic_env/Scripts/python.exe ./predict_and_shape.py --model traffic_model.pkl --interface 1 --duration 15 --shape --dry-run
+```
+
+With actual firewall shaping (requires Administrator, auto-cleanup on exit):
 
 ```powershell
 ./traffic_env/Scripts/python.exe ./predict_and_shape.py --model traffic_model.pkl --interface 1 --duration 15 --shape
+```
+
+Manual cleanup if needed:
+
+```powershell
+./scripts/cleanup_firewall_rules.ps1
 ```
 
 Shaping maps predicted labels to ports/protocols:
@@ -168,17 +180,27 @@ Run options: `--interface`, `--duration`, `--pps`, `--dst`, `--dataset`, `--fres
 
 ---
 
-## Configuration
+## Important Notes and Limitations
 
-This project uses CLI flags instead of config files. Key environment assumptions:
-- TShark must be in PATH (`tshark -v` works)
-- Npcap installed; loopback capture is reliable; Wi‑Fi capture may require specific driver options
-- Administrator rights may be required for capture and shaping on Windows
+### Model Limitations
+- **Features used**: `protocol`, `length`, `src_port` (dst_port deliberately excluded to prevent label leakage)
+- **Expected accuracy**: 60-85% on synthetic data (realistic, not artificially inflated)
+- **Generalization**: Synthetic traffic patterns differ from real-world traffic
+- **Port-based training**: Model trained on specific ports (5555/6666/7777) may not generalize to standard ports
 
-Port → label mapping used throughout:
-- `5555` → `VoIP` (UDP)
-- `6666` → `FTP` (TCP)
-- `7777` → `HTTP` (TCP)
+### Recommendations for Production Use
+This is an **educational project**. For production traffic classification:
+1. Use real labeled datasets (not synthetic)
+2. Add flow-level features (packet rate, inter-arrival time, byte distributions)
+3. Consider deep packet inspection (DPI) for protocol-specific features
+4. Implement proper QoS (Quality of Service) instead of port blocking
+5. Use streaming architectures for real-time processing at scale
+
+### Safety Considerations
+- **Capture only on lab networks** - never on production or unauthorized networks
+- **Traffic shaping is destructive** - test with `--dry-run` first
+- **Firewall rules persist** - use cleanup scripts or `--no-cleanup` flag appropriately
+- **Admin rights required** - capture and shaping need elevated privileges
 
 ---
 
